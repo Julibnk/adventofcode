@@ -1,22 +1,22 @@
 const fs = require('node:fs');
 
-const findAdjacents = (input, x, y) => {
+const findAdjacents = (line, x) => {
   //Same line
   let adjacents = [];
   const previousX = x - 1;
   const nextX = x + 1;
-  const current = input[y][x];
-  const previous = input[y][previousX];
-  const next = input[y][nextX];
+  const current = line[x];
+  const previous = line[previousX];
+  const next = line[nextX];
   let foundPrevious;
   let foundNext;
 
   if (!isNaN(previous)) {
-    foundPrevious = findNumber(input, previous, previousX, y, true);
+    foundPrevious = findNumber(line, previous, previousX, true);
   }
 
   if (!isNaN(next)) {
-    foundNext = findNumber(input, next, nextX, y, false);
+    foundNext = findNumber(line, next, nextX, false);
   }
 
   if (!isNaN(current)) {
@@ -30,18 +30,18 @@ const findAdjacents = (input, x, y) => {
   return adjacents;
 };
 
-const findNumber = (input, accumulate, x, y, backwards) => {
+const findNumber = (line, accumulate, x, backwards) => {
   const newX = backwards ? x - 1 : x + 1;
-  if (x === -1 || x > input[y].length) {
+  if (newX === -1 || newX > line.length) {
     return accumulate;
   }
 
-  const nextCharacter = input[y][newX];
+  const nextCharacter = line[newX];
   if (!isNaN(nextCharacter)) {
     const newAccumulate = backwards
       ? `${nextCharacter}${accumulate}`
       : `${accumulate}${nextCharacter}`;
-    return findNumber(input, newAccumulate, newX, y, backwards);
+    return findNumber(line, newAccumulate, newX, backwards);
   }
 
   return accumulate;
@@ -61,19 +61,21 @@ const getResult = (lines) => {
       const character = line[x];
       // If this character is a symbol
       if (!symbolRegExp.test(character)) {
-        const adjacents = findAdjacents(line, x, y);
-        adjacents.length > 0 && currentSet.add(adjacents);
+        const adjacents = findAdjacents(line, x);
+        adjacents.forEach((number) => currentSet.add(number));
 
+        const previousLine = lines[y - 1];
         // Check previous line
-        if (y - 1 >= 0) {
-          const previousAdjacents = findAdjacents(line, x, y - 1);
-          previousAdjacents.length > 0 && previousSet.add(previousAdjacents);
+        if (previousLine) {
+          const previousAdjacents = findAdjacents(previousLine, x);
+          previousAdjacents.forEach((number) => previousSet.add(number));
         }
 
+        const nextLine = lines[y + 1];
         // Check next line
-        if (y + 1 < lines.length) {
-          const nextAdjacents = findAdjacents(line, x, y + 1);
-          nextAdjacents.length > 0 && nextSet.add(nextAdjacents);
+        if (nextLine) {
+          const nextAdjacents = findAdjacents(nextLine, x);
+          nextAdjacents.forEach((number) => nextSet.add(number));
         }
       }
       result.set(y, currentSet);
@@ -82,15 +84,30 @@ const getResult = (lines) => {
     }
   }
 
-  const total = result.values().flatMap((set) => {
-    return set.entries.reduce((a, b) => a + b);
-  });
+  const allSetArray = [...result.values()];
+  const total = allSetArray.reduce((acc, set) => {
+    const setTotal = [...set.values()].reduce((acc2, current) => {
+      return acc2 + current;
+    }, 0);
+    return acc + setTotal;
+  }, 0);
 
   return total;
 };
 
-// const data = fs.readFileSync(`${__dirname}/inputSample.txt`, 'utf8').toString();
-// console.log(getResult(data, cubes));
+const data = fs
+  .readFileSync(`${__dirname}/input.txt`, 'utf8')
+  .toString()
+  .split('\r\n');
+
+console.log(getResult(data));
+
+// const a = [
+//   '...........826...949...120...985..&....................*.......................462.../......*.........*.......358..932..599.479*............',
+//   '............../.....%..*......%...............151.304..931..471.......601.....*............765........805....%..................149...345...',
+// ];
+
+// console.log(getResult(a));
 
 module.exports = {
   findAdjacents,
